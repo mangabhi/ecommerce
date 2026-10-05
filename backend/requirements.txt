@@ -1,0 +1,7 @@
+fastapi[standard]
+sqlalchemy
+pydantic-settings
+email-validator
+pwdlib[argon2]
+PyJWT
+psycopg[binary]
