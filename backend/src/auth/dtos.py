@@ -1,5 +1,4 @@
 from typing import Optional
-
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -24,6 +23,8 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str 
 
+class RefreshRequest(BaseModel):
+    refresh_token: str
 
 # class ForgotPasswordRequest(BaseModel):
 #     email: EmailStr
