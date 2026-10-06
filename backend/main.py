@@ -1,11 +1,14 @@
 from fastapi import FastAPI
 from src.utils.db import Base,engine
 from src.auth.router import auth_routes
+from src.user.router import user_routes
+from src.user.models import Address, UserProfile
 
 Base.metadata.create_all(engine)
 
 app=FastAPI(title="Authentication User",description="This API will check if the user is valid or not")
 app.include_router(auth_routes)
+app.include_router(user_routes)
 
 
 # @app.get('/')
