@@ -1,0 +1,20 @@
+{
+  "payments": [
+    {
+      "order_key": "demo-pending-order",
+      "provider": "mock",
+      "provider_reference": "demo-seed-pending-payment-001",
+      "status": "pending",
+      "amount": "90.00",
+      "currency": "USD"
+    },
+    {
+      "order_key": "demo-shipped-order",
+      "provider": "mock",
+      "provider_reference": "demo-seed-paid-payment-001",
+      "status": "succeeded",
+      "amount": "28.80",
+      "currency": "USD"
+    }
+  ]
+}

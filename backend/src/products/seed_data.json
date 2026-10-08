@@ -1,0 +1,52 @@
+{
+  "products": [
+    {
+      "name": "Everyday Cotton Tee",
+      "category": "Apparel",
+      "description": "A soft, heavyweight cotton tee with a relaxed fit and clean everyday styling.",
+      "price": "32.00",
+      "stock_quantity": 24,
+      "image_url": "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=1200&q=85"
+    },
+    {
+      "name": "Everyday Crossbody Bag",
+      "category": "Accessories",
+      "description": "A compact crossbody bag with room for daily essentials and an adjustable strap.",
+      "price": "58.00",
+      "stock_quantity": 12,
+      "image_url": "https://images.unsplash.com/photo-1548036328-c9fa89d128fa?auto=format&fit=crop&w=1200&q=85"
+    },
+    {
+      "name": "Stoneware Coffee Mug",
+      "category": "Home & Living",
+      "description": "Hand-finished stoneware with a comfortable handle, made for slow mornings.",
+      "price": "16.00",
+      "stock_quantity": 7,
+      "image_url": "https://images.unsplash.com/photo-1514228742587-6b1558fcca3d?auto=format&fit=crop&w=1200&q=85"
+    },
+    {
+      "name": "Classic Analog Watch",
+      "category": "Accessories",
+      "description": "A minimal analog watch with a timeless dial and an easy-to-wear everyday strap.",
+      "price": "86.00",
+      "stock_quantity": 9,
+      "image_url": "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1200&q=85"
+    },
+    {
+      "name": "Weekend Canvas Sneakers",
+      "category": "Footwear",
+      "description": "Lightweight canvas sneakers with a cushioned footbed for weekend exploring.",
+      "price": "72.00",
+      "stock_quantity": 18,
+      "image_url": "https://images.unsplash.com/photo-1525966222134-fcfa99b8ae77?auto=format&fit=crop&w=1200&q=85"
+    },
+    {
+      "name": "Linen Market Tote",
+      "category": "Accessories",
+      "description": "A roomy reusable tote in natural linen for errands, markets, and day trips.",
+      "price": "28.00",
+      "stock_quantity": 5,
+      "image_url": "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=1200&q=85"
+    }
+  ]
+}

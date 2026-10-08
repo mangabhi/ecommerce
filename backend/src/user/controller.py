@@ -11,6 +11,7 @@ def _profile_response(user: AuthUser, profile: UserProfile | None) -> dict:
         "user_id": user.id,
         "email": user.email,
         "full_name": user.full_name,
+        "role": user.role,
         "phone": user.phone,
         "date_of_birth": profile.date_of_birth if profile else None,
         "avatar_url": profile.avatar_url if profile else None,

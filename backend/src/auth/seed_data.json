@@ -1,0 +1,20 @@
+{
+  "users": [
+    {
+      "email": "demo.customer@example.com",
+      "password": "DemoPass123!",
+      "full_name": "Jamie Customer",
+      "phone": "+1-555-0101",
+      "role": "customer",
+      "is_verified": true
+    },
+    {
+      "email": "demo.admin@example.com",
+      "password": "DemoPass123!",
+      "full_name": "Alex Shopkeeper",
+      "phone": "+1-555-0102",
+      "role": "admin",
+      "is_verified": true
+    }
+  ]
+}

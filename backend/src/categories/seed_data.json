@@ -1,0 +1,20 @@
+{
+  "categories": [
+    {
+      "name": "Apparel",
+      "description": "Everyday clothing and considered wardrobe staples."
+    },
+    {
+      "name": "Accessories",
+      "description": "Useful finishing touches for work, travel, and weekends."
+    },
+    {
+      "name": "Home & Living",
+      "description": "Thoughtful objects for a more welcoming home."
+    },
+    {
+      "name": "Footwear",
+      "description": "Comfortable shoes made for getting out and about."
+    }
+  ]
+}

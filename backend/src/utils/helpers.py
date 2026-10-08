@@ -38,3 +38,12 @@ def is_authenticated(request: Request, db: Session=Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
 
     return user
+
+
+def is_admin(current_user: AuthUser = Depends(is_authenticated)) -> AuthUser:
+    if current_user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Administrator access required",
+        )
+    return current_user

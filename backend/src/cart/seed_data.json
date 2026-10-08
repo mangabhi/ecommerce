@@ -1,0 +1,17 @@
+{
+  "carts": [
+    {
+      "email": "demo.customer@example.com",
+      "items": [
+        {
+          "product": "Stoneware Coffee Mug",
+          "quantity": 2
+        },
+        {
+          "product": "Everyday Cotton Tee",
+          "quantity": 1
+        }
+      ]
+    }
+  ]
+}

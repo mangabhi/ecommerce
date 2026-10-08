@@ -8,5 +8,7 @@ class Settings(BaseSettings):
     ALGORITHM:str
     EXP_TIME:int
     REFRESH_EXP_TIME:int
+    APP_ENV: str = "production"
+    MOCK_PAYMENT_WEBHOOK_SECRET: str = ""
 
 settings=Settings()

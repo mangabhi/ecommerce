@@ -1,0 +1,47 @@
+{
+  "orders": [
+    {
+      "key": "demo-pending-order",
+      "email": "demo.customer@example.com",
+      "address_label": "home",
+      "status": "pending_payment",
+      "subtotal": "90.00",
+      "discount_amount": "0.00",
+      "total": "90.00",
+      "coupon_code": null,
+      "tracking_number": null,
+      "tracking_status": "Demo order awaiting payment",
+      "items": [
+        {
+          "product": "Everyday Cotton Tee",
+          "quantity": 1,
+          "unit_price": "32.00"
+        },
+        {
+          "product": "Everyday Crossbody Bag",
+          "quantity": 1,
+          "unit_price": "58.00"
+        }
+      ]
+    },
+    {
+      "key": "demo-shipped-order",
+      "email": "demo.customer@example.com",
+      "address_label": "home",
+      "status": "shipped",
+      "subtotal": "32.00",
+      "discount_amount": "3.20",
+      "total": "28.80",
+      "coupon_code": "WELCOME10",
+      "tracking_number": "DEMO-TRACK-1001",
+      "tracking_status": "In transit - demo shipment",
+      "items": [
+        {
+          "product": "Stoneware Coffee Mug",
+          "quantity": 2,
+          "unit_price": "16.00"
+        }
+      ]
+    }
+  ]
+}

@@ -8,6 +8,7 @@ class UserProfileResponse(BaseModel):
     user_id: int
     email: str
     full_name: str
+    role: str
     phone: Optional[str] = None
     date_of_birth: Optional[date] = None
     avatar_url: Optional[str] = None
