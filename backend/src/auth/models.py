@@ -1,5 +1,6 @@
 from sqlalchemy import Column,String,Integer,Boolean,DateTime
 from src.utils.db import Base
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func 
 
 class AuthUser(Base):
@@ -15,6 +16,17 @@ class AuthUser(Base):
     is_verified=Column(Boolean,nullable=False)
     created_at=Column(DateTime(timezone=True),server_default=func.now())
     updated_at=Column(DateTime(timezone=True),server_default=func.now())
+    profile = relationship(
+        "UserProfile",
+        back_populates="user",
+        uselist=False,
+        cascade="all, delete-orphan",
+    )
+    addresses = relationship(
+        "Address",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
 
 
 class RevokedToken(Base):

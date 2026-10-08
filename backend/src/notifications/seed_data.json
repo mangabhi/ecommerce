@@ -1,0 +1,22 @@
+{
+  "notifications": [
+    {
+      "email": "demo.customer@example.com",
+      "title": "Welcome to the shop",
+      "message": "Your demo account is ready. Browse the collection and try the checkout flow.",
+      "is_read": false
+    },
+    {
+      "email": "demo.customer@example.com",
+      "title": "Your order is on its way",
+      "message": "Order DEMO-TRACK-1001 is in transit. This is sample tracking data for the storefront.",
+      "is_read": false
+    },
+    {
+      "email": "demo.customer@example.com",
+      "title": "Payment received",
+      "message": "Payment for your sample shipped order was received successfully.",
+      "is_read": true
+    }
+  ]
+}

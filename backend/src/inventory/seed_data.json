@@ -1,0 +1,34 @@
+{
+  "adjustments": [
+    {
+      "product": "Everyday Cotton Tee",
+      "change": 24,
+      "reason": "Demo sample opening stock"
+    },
+    {
+      "product": "Everyday Crossbody Bag",
+      "change": 12,
+      "reason": "Demo sample opening stock"
+    },
+    {
+      "product": "Stoneware Coffee Mug",
+      "change": 7,
+      "reason": "Demo sample opening stock"
+    },
+    {
+      "product": "Classic Analog Watch",
+      "change": 9,
+      "reason": "Demo sample opening stock"
+    },
+    {
+      "product": "Weekend Canvas Sneakers",
+      "change": 18,
+      "reason": "Demo sample opening stock"
+    },
+    {
+      "product": "Linen Market Tote",
+      "change": 5,
+      "reason": "Demo sample opening stock"
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "reviews": [
+    {
+      "email": "demo.customer@example.com",
+      "product": "Everyday Cotton Tee",
+      "rating": 5,
+      "title": "A new everyday favourite",
+      "body": "Soft fabric, a comfortable fit, and exactly the quality I hoped for."
+    },
+    {
+      "email": "demo.customer@example.com",
+      "product": "Stoneware Coffee Mug",
+      "rating": 4,
+      "title": "Lovely morning mug",
+      "body": "A beautiful finish and a good weight. It has quickly become my favourite mug."
+    }
+  ],
+  "wishlist": [
+    {
+      "email": "demo.customer@example.com",
+      "product": "Classic Analog Watch"
+    },
+    {
+      "email": "demo.customer@example.com",
+      "product": "Linen Market Tote"
+    }
+  ]
+}

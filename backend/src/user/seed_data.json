@@ -1,0 +1,29 @@
+{
+  "profiles": [
+    {
+      "email": "demo.customer@example.com",
+      "date_of_birth": "1994-06-15",
+      "avatar_url": "https://i.pravatar.cc/240?img=12"
+    },
+    {
+      "email": "demo.admin@example.com",
+      "date_of_birth": "1988-11-03",
+      "avatar_url": "https://i.pravatar.cc/240?img=47"
+    }
+  ],
+  "addresses": [
+    {
+      "email": "demo.customer@example.com",
+      "label": "home",
+      "recipient_name": "Jamie Customer",
+      "phone": "+1-555-0101",
+      "address_line1": "120 Market Street",
+      "address_line2": "Apartment 4B",
+      "city": "San Francisco",
+      "state": "CA",
+      "postal_code": "94105",
+      "country": "United States",
+      "is_default": true
+    }
+  ]
+}
