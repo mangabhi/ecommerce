@@ -25,6 +25,9 @@ from src.notifications.models import Notification
 Base.metadata.create_all(engine)
 
 app=FastAPI(title="Authentication User",description="This API will check if the user is valid or not")
+@app.get("/health")
+def health_check():
+    return {"status":"healthy"}
 app.include_router(auth_routes)
 app.include_router(user_routes)
 app.include_router(product_routes)
