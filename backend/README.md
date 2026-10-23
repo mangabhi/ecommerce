@@ -29,6 +29,22 @@
 
    The API is available at `http://127.0.0.1:8000`. Interactive API documentation is at `http://127.0.0.1:8000/docs`.
 
+   ## Run with Docker
+
+   Run these commands from the backend directory. The environment file is passed
+   to the container at runtime; do not copy it into the image.
+
+   ```powershell
+   docker build -t ecommerce-api:1.0 .
+   docker run --name ecommerce-api --env-file .env.docker -p 8000:8000 ecommerce-api:1.0
+   ```
+
+   Ensure `.env.docker` defines `DB_CONNECTION`, `SECRET_KEY`, `ALGORITHM`, `EXP_TIME`,
+   and `REFRESH_EXP_TIME`. If PostgreSQL runs on the Windows host, use
+   `host.docker.internal` as the database hostname in `DB_CONNECTION` instead
+   of `localhost`. In Docker CLI env files, write values without surrounding
+   quotes; the quote characters can become part of the environment variable.
+
    ## Development sample data
 
    Each service has a `seed_data.json` fixture in its `src/<service>/` folder.

@@ -1,0 +1,15 @@
+name: Self-Hosted Runner Test
+
+on:
+  workflow_dispatch:
+
+jobs:
+  runner-check:
+    runs-on: [self-hosted, Windows, X64]
+    steps:
+      - name: Verify runner
+        shell: pwsh
+        run: |
+          Write-Host "Self-hosted runner is working!"
+          kubectl config current-context
+          kubectl get nodes
