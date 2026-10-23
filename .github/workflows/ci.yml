@@ -8,7 +8,12 @@ on:
 jobs:
   backend-tests:
     runs-on: ubuntu-latest
-
+    env:
+      DB_CONNECTION: "sqlite:///./test.db"
+      SECRET_KEY: "ci-test-only-secret-key-not-for-production"
+      ALGORITHM: "HS256"
+      EXP_TIME: "30"
+      REFRESH_EXP_TIME: "7"
     defaults:
       run:
         working-directory: backend
