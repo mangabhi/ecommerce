@@ -47,3 +47,21 @@ npm run dev
 npm run lint
 npm run build
 ```
+
+
+
+Kubernetes manages containers running across a cluster.
+Component	What it does
+Cluster	The complete Kubernetes environment
+Node	A machine that runs application workloads
+Pod	The smallest deployable unit, usually containing a container
+Deployment	Manages Pods, replicas and replacement of failed Pods
+Service	Provides a stable network endpoint for accessing Pods
+
+For your application, the relationship will look like this:
+- A Deployment manages your FastAPI backend Pods.
+- Another Deployment manages your Next.js frontend Pods.
+- Services let the frontend and other clients reach the appropriate Pods.
+Important: Kubernetes is not a replacement for Docker. Docker builds and packages your images; Kubernetes runs and manages your application workloads.
+
+A Namespace is like a separate workspace inside a Kubernetes cluster. It helps organize and isolate resources.
