@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { NookLoader } from "@/components/nook-loader";
 import {
   FormEvent,
   useCallback,
@@ -18,14 +19,16 @@ import {
   Coupon,
   CouponQuote,
   Inventory,
+  ManagedUser,
+  ManagedUserInput,
   Notification,
   Order,
-  Payment,
   Product,
   ProductInput,
   ProfileInput,
   Review,
   UserProfile,
+  UserRole,
   authApi,
   cartApi,
   categoryApi,
@@ -35,7 +38,6 @@ import {
   inventoryApi,
   notificationApi,
   orderApi,
-  paymentApi,
   productApi,
   reviewApi,
   userApi,
@@ -52,6 +54,7 @@ type Section =
   | "products"
   | "inventory"
   | "coupons"
+  | "admin-users"
   | "admin-orders";
 
 const baseAddress: AddressInput = {
@@ -91,6 +94,11 @@ export default function ShopPage() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [adminOrders, setAdminOrders] = useState<Order[]>([]);
+  const [adminUsers, setAdminUsers] = useState<ManagedUser[]>([]);
+  const [editingAdminUser, setEditingAdminUser] = useState<number | null>(null);
+  const [adminUserDraft, setAdminUserDraft] = useState<ManagedUserInput>({});
+  const [adminUserSearch, setAdminUserSearch] = useState("");
+  const [adminUserOffset, setAdminUserOffset] = useState(0);
   const [wishlist, setWishlist] = useState<Awaited<ReturnType<typeof wishlistApi.get>>>({ items: [] });
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -100,7 +108,6 @@ export default function ShopPage() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [myReview, setMyReview] = useState<Review | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
-  const [payment, setPayment] = useState<Payment | null>(null);
   const [quote, setQuote] = useState<CouponQuote | null>(null);
   const [code, setCode] = useState("");
   const [search, setSearch] = useState("");
@@ -108,7 +115,6 @@ export default function ShopPage() {
   const [maxPrice, setMaxPrice] = useState("");
   const [sort, setSort] = useState<"created_at" | "name" | "price">("created_at");
   const [categoryId, setCategoryId] = useState<number | null>(null);
-  const [checkoutAddress, setCheckoutAddress] = useState("");
   const [reviewRating, setReviewRating] = useState(5);
   const [reviewTitle, setReviewTitle] = useState("");
   const [reviewBody, setReviewBody] = useState("");
@@ -174,14 +180,25 @@ export default function ShopPage() {
     setOrders(nextOrders);
     setWishlist(nextWishlist);
     setNotifications(nextNotifications);
-    const preferredAddress = nextAddresses.find((address) => address.is_default) ?? nextAddresses[0];
-    setCheckoutAddress(preferredAddress ? String(preferredAddress.id) : "");
   }, []);
+
+  useEffect(() => {
+    if (!message) return;
+    const timeout = window.setTimeout(() => setMessage(""), 5000);
+    return () => window.clearTimeout(timeout);
+  }, [message]);
 
   useEffect(() => {
     let active = true;
     async function initialize() {
       try {
+        if (new URLSearchParams(window.location.search).get("cart") === "1") {
+          setSection("cart");
+          window.history.replaceState({}, "", "/");
+        } else if (new URLSearchParams(window.location.search).get("section") === "orders") {
+          setSection("orders");
+          window.history.replaceState({}, "", "/");
+        }
         const [nextProducts, nextCategories] = await Promise.all([
           productApi.list({ sort_by: "created_at", order: "desc" }),
           categoryApi.list(),
@@ -254,7 +271,10 @@ export default function ShopPage() {
       router.push("/login");
       return;
     }
-    if (!isAdmin && ["products", "inventory", "coupons", "admin-orders"].includes(next)) {
+    if (
+      !isAdmin &&
+      ["products", "inventory", "coupons", "admin-users", "admin-orders"].includes(next)
+    ) {
       setSection("shop");
       setError("This section is available to administrators only.");
       return;
@@ -280,6 +300,13 @@ export default function ShopPage() {
     } else if (next === "coupons") {
       const found = await perform(() => couponApi.list());
       if (found) setCoupons(found);
+    } else if (next === "admin-users") {
+      const found = await perform(() => userApi.adminList("", 50, 0));
+      if (found) {
+        setAdminUsers(found);
+        setAdminUserSearch("");
+        setAdminUserOffset(0);
+      }
     } else if (next === "admin-orders") {
       const found = await perform(() => orderApi.adminList());
       if (found) setAdminOrders(found);
@@ -288,9 +315,68 @@ export default function ShopPage() {
     }
   }
 
-  async function refreshCart() {
-    const found = await cartApi.get();
-    setCart(found);
+  async function searchAdminUsers(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const found = await perform(() => userApi.adminList(adminUserSearch, 50, 0));
+    if (found) {
+      setAdminUsers(found);
+      setAdminUserOffset(0);
+      setEditingAdminUser(null);
+    }
+  }
+
+  async function changeAdminUserPage(offset: number) {
+    const found = await perform(() => userApi.adminList(adminUserSearch, 50, offset));
+    if (found) {
+      setAdminUsers(found);
+      setAdminUserOffset(offset);
+      setEditingAdminUser(null);
+    }
+  }
+
+  async function saveAdminUser(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (editingAdminUser === null) return;
+    const saved = await perform(
+      () => userApi.adminUpdate(editingAdminUser, adminUserDraft),
+      "User details updated.",
+    );
+    if (!saved) return;
+    setAdminUsers((current) =>
+      current.map((user) => (user.id === saved.id ? saved : user)),
+    );
+    if (profile?.user_id === saved.id) {
+      setProfile((current) =>
+        current
+          ? {
+              ...current,
+              full_name: saved.full_name,
+              phone: saved.phone,
+              role: saved.role,
+            }
+          : current,
+      );
+    }
+    setEditingAdminUser(null);
+    setAdminUserDraft({});
+  }
+
+  async function deleteAdminCustomer(user: ManagedUser) {
+    const confirmed = window.confirm(
+      `Permanently delete ${user.full_name} (${user.email})? This also deletes their orders, payment history, addresses, and notifications.`,
+    );
+    if (!confirmed) return;
+    const deleted = await perform(async () => {
+      await userApi.adminDeleteCustomer(user.id);
+      return true;
+    }, "Customer and linked account data permanently deleted.");
+    if (deleted) {
+      setAdminUsers((current) => current.filter((item) => item.id !== user.id));
+      if (editingAdminUser === user.id) {
+        setEditingAdminUser(null);
+        setAdminUserDraft({});
+      }
+    }
   }
 
   async function addToCart(productId: number) {
@@ -299,7 +385,10 @@ export default function ShopPage() {
       return;
     }
     const found = await perform(() => cartApi.add(productId, 1), "Added to your basket.");
-    if (found) setCart(found);
+    if (found) {
+      setCart(found);
+      setQuote(null);
+    }
   }
 
   async function toggleWishlist(productId: number) {
@@ -346,59 +435,29 @@ export default function ShopPage() {
 
   async function applyQuote(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const result = await perform(() => couponApi.quote(code || null));
-    if (result) setQuote(result);
-  }
-
-  async function validateCoupon() {
-    if (!cart) return;
-    const result = await perform(() => couponApi.validate(code, cart.subtotal));
-    if (result) setQuote(result);
-  }
-
-  async function checkout(useCreateOrder = false) {
-    if (!checkoutAddress) {
-      setError("Add or choose a delivery address before checking out.");
+    const normalizedCode = code.trim().toUpperCase();
+    if (!normalizedCode) {
+      setError("Enter a coupon code to apply it.");
+      setMessage("");
       return;
     }
-    const created = await perform(
-      () =>
-        useCreateOrder
-          ? orderApi.create(Number(checkoutAddress), code || null)
-          : orderApi.checkout(Number(checkoutAddress), code || null),
-      "Order placed. Complete payment to confirm it.",
-    );
-    if (!created) return;
-    setSelectedOrder(created);
-    setOrders((current) => [created, ...current]);
-    await refreshCart();
-    setSection("orders");
-  }
-
-  async function beginPayment(order: Order) {
-    const created = await perform(() => paymentApi.create(order.id), "Mock payment created.");
-    if (created) {
-      setPayment(created);
-      setSelectedOrder(order);
-    }
-  }
-
-  async function completeMockPayment(status: "succeeded" | "failed") {
-    if (!payment) return;
     const result = await perform(
-      () =>
-        paymentApi.webhook({
-          provider_reference: payment.provider_reference,
-          status,
-          amount: payment.amount,
-        }),
-      status === "succeeded" ? "Payment completed." : "Payment failed; stock was released.",
+      () => couponApi.quote(normalizedCode),
+      "Coupon applied to your basket.",
     );
-    if (!result) return;
-    setPayment(result);
-    const fresh = await orderApi.get(result.order_id);
-    setSelectedOrder(fresh);
-    setOrders((current) => current.map((order) => (order.id === fresh.id ? fresh : order)));
+    if (result) setQuote(result);
+  }
+
+  function removeCoupon() {
+    setCode("");
+    setQuote(null);
+    setError("");
+    setMessage("Coupon removed.");
+  }
+
+  async function checkout() {
+    const coupon = quote?.coupon_code;
+    router.push(`/checkout${coupon ? `?coupon=${encodeURIComponent(coupon)}` : ""}`);
   }
 
   async function cancelOrder(order: Order) {
@@ -620,12 +679,11 @@ export default function ShopPage() {
   }
 
   if (loading) {
-    return <div className="loading-state">Opening the nook shop…</div>;
+    return <NookLoader label="Opening the nook shop…" />;
   }
 
   const navItems: { id: Section; label: string; icon: string }[] = [
     { id: "shop", label: "Discover", icon: "✳" },
-    { id: "cart", label: `Your basket${itemCount ? ` · ${itemCount}` : ""}`, icon: "◌" },
     { id: "orders", label: "Orders", icon: "↗" },
     { id: "wishlist", label: "Saved pieces", icon: "♡" },
     { id: "profile", label: "Your account", icon: "◡" },
@@ -645,6 +703,18 @@ export default function ShopPage() {
           <button className="text-link" onClick={() => void changeSection("wishlist")}>Wishlist</button>
         </nav>
         <div className="header-actions">
+          <button
+            className="header-cart-button"
+            aria-label={`Open cart, ${itemCount} ${itemCount === 1 ? "item" : "items"}`}
+            onClick={() => void changeSection("cart")}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4h2l2.2 10.1a2 2 0 0 0 2 1.6h8.5a2 2 0 0 0 1.9-1.4L21 8H6" />
+              <circle cx="10" cy="20" r="1" />
+              <circle cx="18" cy="20" r="1" />
+            </svg>
+            <span className="header-cart-count">{itemCount > 99 ? "99+" : itemCount}</span>
+          </button>
           {profile ? (
             <>
               <span className="store-greeting">Hello, {profile.full_name.split(" ")[0]}</span>
@@ -681,6 +751,7 @@ export default function ShopPage() {
                 ["products", "Products"],
                 ["inventory", "Inventory"],
                 ["coupons", "Coupons"],
+                ["admin-users", "Manage users"],
                 ["admin-orders", "Manage orders"],
               ] as const).map(([id, label]) => (
                 <button
@@ -700,8 +771,26 @@ export default function ShopPage() {
         </aside>
 
         <section className="store-main">
-          {error && <p className="form-error store-alert" role="alert">{error}</p>}
-          {message && <p className="form-success store-alert" role="status">{message}</p>}
+          {(error || message) && (
+            <div
+              className={`store-toast ${error ? "store-toast-error" : "store-toast-success"}`}
+              role={error ? "alert" : "status"}
+              aria-live={error ? "assertive" : "polite"}
+            >
+              <span>{error || message}</span>
+              <button
+                type="button"
+                className="store-toast-dismiss"
+                aria-label="Dismiss notification"
+                onClick={() => {
+                  setError("");
+                  setMessage("");
+                }}
+              >
+                ×
+              </button>
+            </div>
+          )}
 
           {section === "shop" && (
             <>
@@ -782,21 +871,19 @@ export default function ShopPage() {
                 <div className="product-grid">
                   {products.map((product, index) => (
                     <article className="product-card" key={product.id}>
-                      <button className={`product-image product-tone-${index % 4}`} onClick={() => void openProduct(product.id)} aria-label={`View ${product.name}`}>
+                      <Link className={`product-image product-tone-${index % 4}`} href={`/products/${product.id}`} aria-label={`View ${product.name}`}>
                         {product.image_url ? <span className="product-photo" aria-hidden="true" style={{ backgroundImage: `url("${product.image_url.replaceAll('"', "%22")}")` }} /> : <span aria-hidden="true">{["✳", "◌", "✿", "◇"][index % 4]}</span>}
                         <small>{product.stock_quantity > 0 ? "READY TO SHIP" : "A LITTLE WAIT"}</small>
-                      </button>
+                      </Link>
                       <div className="product-card-info">
                         <div>
-                          <button className="product-name" onClick={() => void openProduct(product.id)}>{product.name}</button>
+                          <Link className="product-name" href={`/products/${product.id}`}>{product.name}</Link>
                           <p>{product.description || categories.find((category) => category.id === product.category_id)?.name || "A thoughtful everyday find"}</p>
                         </div>
                         <span>{money(product.price)}</span>
                       </div>
                       <div className="product-card-actions">
-                        <button className="button button-dark" disabled={!product.stock_quantity || working} onClick={() => void addToCart(product.id)}>
-                          {product.stock_quantity ? "Add to basket" : "Out of stock"}
-                        </button>
+                        <Link className="button button-dark product-view-link" href={`/products/${product.id}`}>View product</Link>
                         <button className="icon-button" aria-label="Save product" onClick={() => void toggleWishlist(product.id)}>
                           {wishlist.items.some((item) => item.product_id === product.id) ? "♥" : "♡"}
                         </button>
@@ -852,35 +939,79 @@ export default function ShopPage() {
               {!cart?.items.length ? <div className="empty-state"><p>Your basket is waiting for something good.</p><button className="button button-dark" onClick={() => void changeSection("shop")}>Explore the collection</button></div> : (
                 <div className="cart-layout">
                   <div className="cart-items">
+                    <div className="cart-items-heading">
+                      <span>{cart.items.length} {cart.items.length === 1 ? "piece" : "pieces"} in your basket</span>
+                      <button className="small-action danger" disabled={working} onClick={async () => { const cleared = await perform(async () => { await cartApi.clear(); return true; }, "Basket cleared."); if (cleared) { setCart(await cartApi.get()); setQuote(null); } }}>Clear basket</button>
+                    </div>
                     {cart.items.map((item) => (
                       <article className="cart-row" key={item.id}>
-                        <div className="cart-item-mark">✳</div>
-                        <div className="cart-item-copy"><h3>{item.product.name}</h3><p>{money(item.product.price)} each</p></div>
-                        <div className="quantity-control">
-                          <button aria-label="Decrease quantity" disabled={working || item.quantity <= 1} onClick={async () => { const updated = await perform(() => cartApi.update(item.id, item.quantity - 1)); if (updated) setCart(updated); }}>−</button>
-                          <span>{item.quantity}</span>
-                          <button aria-label="Increase quantity" disabled={working || item.quantity >= item.product.stock_quantity} onClick={async () => { const updated = await perform(() => cartApi.update(item.id, item.quantity + 1)); if (updated) setCart(updated); }}>+</button>
+                        <div className="cart-product-visual">
+                          {item.product.image_url ? (
+                            <span
+                              className="cart-product-photo"
+                              role="img"
+                              aria-label={item.product.name}
+                              style={{
+                                backgroundImage: `url("${item.product.image_url.replaceAll('"', "%22")}")`,
+                              }}
+                            />
+                          ) : (
+                            <span className="cart-item-mark" aria-hidden="true">✳</span>
+                          )}
                         </div>
-                        <strong>{money(item.subtotal)}</strong>
-                        <button className="small-action danger" onClick={async () => { const updated = await perform(() => cartApi.remove(item.id), "Item removed."); if (updated) setCart(updated); }}>Remove</button>
+                        <div className="cart-item-copy">
+                          <h3>{item.product.name}</h3>
+                          <p>{money(item.product.price)} each</p>
+                          <span className="cart-item-stock">
+                            {item.product.stock_quantity > 0 ? "Ready to send" : "Out of stock"}
+                          </span>
+                        </div>
+                        <div className="quantity-control">
+                          <button aria-label={`Decrease ${item.product.name} quantity`} disabled={working || item.quantity <= 1} onClick={async () => { const updated = await perform(() => cartApi.update(item.id, item.quantity - 1), "Basket updated."); if (updated) { setCart(updated); setQuote(null); } }}>−</button>
+                          <span>{item.quantity}</span>
+                          <button aria-label={`Increase ${item.product.name} quantity`} disabled={working || item.quantity >= item.product.stock_quantity} onClick={async () => { const updated = await perform(() => cartApi.update(item.id, item.quantity + 1), "Basket updated."); if (updated) { setCart(updated); setQuote(null); } }}>+</button>
+                        </div>
+                        <div className="cart-line-total">
+                          <strong>{money(item.subtotal)}</strong>
+                          <span>Item total</span>
+                        </div>
+                        <button className="small-action danger cart-remove" disabled={working} onClick={async () => { const updated = await perform(() => cartApi.remove(item.id), "Item removed."); if (updated) { setCart(updated); setQuote(null); } }}>Remove</button>
                       </article>
                     ))}
-                    <button className="small-action danger" onClick={async () => { const cleared = await perform(async () => { await cartApi.clear(); return true; }, "Basket cleared."); if (cleared) setCart(await cartApi.get()); }}>Clear basket</button>
+                    <button className="button button-plain cart-continue" onClick={() => void changeSection("shop")}>← Continue shopping</button>
                   </div>
                   <aside className="checkout-card">
-                    <h3>A little total-up</h3>
+                    <p className="store-overline">YOUR ORDER</p>
+                    <h3>Order summary</h3>
                     <form className="coupon-row" onSubmit={(event) => void applyQuote(event)}>
-                      <input aria-label="Coupon code" placeholder="Have a little code?" value={code} onChange={(event) => setCode(event.target.value)} />
-                      <button className="button button-outline" type="submit">Apply</button>
+                      <input aria-label="Coupon code" placeholder="Enter coupon code" value={code} onChange={(event) => { setCode(event.target.value.toUpperCase()); setQuote(null); }} />
+                      <button className="button button-outline" type="submit" disabled={working || !code.trim()}>Apply</button>
                     </form>
-                    <button className="small-action coupon-validate" onClick={() => void validateCoupon()}>Validate code</button>
-                    <div className="total-line"><span>Subtotal</span><strong>{money(cart.subtotal)}</strong></div>
-                    {quote && <><div className="total-line"><span>Code {quote.coupon_code ?? ""}</span><strong>−{money(quote.discount_amount)}</strong></div><div className="total-line total-grand"><span>Estimated total</span><strong>{money(quote.total)}</strong></div></>}
-                    <label className="form-field checkout-address"><span>Deliver to</span><select value={checkoutAddress} onChange={(event) => setCheckoutAddress(event.target.value)}><option value="">Choose an address</option>{addresses.map((address) => <option key={address.id} value={address.id}>{address.label} · {address.address_line1}, {address.city}</option>)}</select></label>
-                    {!addresses.length && <button className="small-action" onClick={() => void changeSection("profile")}>Add a delivery address</button>}
-                    <button className="button button-dark checkout-button" disabled={working || !cart.items.length} onClick={() => void checkout(false)}>Continue to checkout <span aria-hidden="true">↗</span></button>
-                    <button className="button button-outline checkout-button" disabled={working || !cart.items.length} onClick={() => void checkout(true)}>Create order directly</button>
-                    <p className="muted-copy">Stock is checked again when your order is placed.</p>
+                    {quote?.coupon_code && (
+                      <div className="coupon-applied">
+                        <span><b aria-hidden="true">✓</b> {quote.coupon_code} applied</span>
+                        <button type="button" onClick={removeCoupon}>Remove</button>
+                      </div>
+                    )}
+                    <div className="cart-price-breakdown">
+                      <div className="total-line"><span>Subtotal · {cart.items.reduce((count, item) => count + item.quantity, 0)} items</span><strong>{money(cart.subtotal)}</strong></div>
+                      {quote?.coupon_code && (
+                        <div className="total-line total-discount">
+                          <span>Discount · {quote.coupon_code}</span>
+                          <strong>−{money(quote.discount_amount)}</strong>
+                        </div>
+                      )}
+                      <div className="total-line total-shipping"><span>Shipping</span><strong>Calculated at checkout</strong></div>
+                      <div className="total-line total-grand">
+                        <span>Estimated total</span>
+                        <strong>{money(quote?.coupon_code ? quote.total : cart.subtotal)}</strong>
+                      </div>
+                      {quote?.coupon_code && Number(quote.discount_amount) > 0 && (
+                        <p className="cart-savings">You save {money(quote.discount_amount)} with this code.</p>
+                      )}
+                    </div>
+                    <button className="button button-dark checkout-button" disabled={working || !cart.items.length} onClick={() => void checkout()}>Continue to checkout <span aria-hidden="true">↗</span></button>
+                    <p className="muted-copy">Shipping and any applicable taxes are confirmed at checkout. Secure payment by Stripe.</p>
                   </aside>
                 </div>
               )}
@@ -898,7 +1029,7 @@ export default function ShopPage() {
                       <p>{order.items.map((item) => `${item.product_name} × ${item.quantity}`).join(" · ")}</p>
                       <div className="order-card-foot"><strong>{money(order.total)}</strong><div className="inline-actions">
                         <button className="small-action" onClick={() => void loadOrder(order.id)}>Details & tracking</button>
-                        {order.status === "pending_payment" && <button className="small-action" onClick={() => void beginPayment(order)}>Pay now</button>}
+                        {order.status === "pending_payment" && <Link className="small-action" href={`/checkout?order_id=${order.id}`}>Pay now</Link>}
                         {["pending_payment","paid","processing"].includes(order.status) && <button className="small-action danger" onClick={() => void cancelOrder(order)}>Cancel</button>}
                       </div></div>
                     </article>
@@ -911,7 +1042,6 @@ export default function ShopPage() {
                 {selectedOrder.tracking_number && <p>Tracking {selectedOrder.tracking_number} · {selectedOrder.tracking_status || "Tracking number assigned"}</p>}
                 <ul>{selectedOrder.items.map((item) => <li key={item.id}>{item.product_name} × {item.quantity} — {money(item.unit_price)}</li>)}</ul>
                 <p>Shipping to: {Object.values(selectedOrder.shipping_address).filter(Boolean).join(", ")}</p>
-                {payment && payment.order_id === selectedOrder.id && <div className="payment-card"><strong>Mock payment {payment.status}</strong><p>{payment.currency} {money(payment.amount)} · ref {payment.provider_reference}</p><div className="inline-actions"><button className="small-action" onClick={async () => {const current = await perform(() => paymentApi.get(payment.id)); if (current) setPayment(current);}}>Refresh status</button>{payment.status === "pending" && process.env.NODE_ENV === "development" && <><button className="button button-dark" onClick={() => void completeMockPayment("succeeded")}>Simulate success</button><button className="button button-plain" onClick={() => void completeMockPayment("failed")}>Simulate failure</button></>}{payment.status === "succeeded" && <button className="small-action danger" onClick={async () => { const refunded = await perform(() => paymentApi.refund(payment.id, "Refund requested by customer."), "Refund completed."); if (refunded) setPayment(refunded); }}>Request refund</button>}</div></div>}
               </section>}
             </section>
           )}
@@ -1035,6 +1165,180 @@ export default function ShopPage() {
                 </form>
               </section>
               <div className="admin-table">{coupons.map((coupon) => <article className="admin-row" key={coupon.id}><div><strong>{coupon.code}</strong><span>{coupon.discount_value}{coupon.discount_type === "percentage" ? "%" : " off"} · used {coupon.usage_count}{coupon.usage_limit ? ` / ${coupon.usage_limit}` : ""}</span></div><span className={`status-pill ${coupon.is_active ? "" : "status-cancelled"}`}>{coupon.is_active ? "active" : "inactive"}</span><div className="inline-actions"><button className="small-action" onClick={() => {setEditingCoupon(coupon.id);setCouponDraft({code:coupon.code,discount_type:coupon.discount_type,discount_value:Number(coupon.discount_value),minimum_order_amount:Number(coupon.minimum_order_amount),maximum_discount:coupon.maximum_discount ?? "",usage_limit:coupon.usage_limit ? String(coupon.usage_limit) : "",starts_at:coupon.starts_at ? new Date(coupon.starts_at).toISOString().slice(0,16) : "",expires_at:coupon.expires_at ? new Date(coupon.expires_at).toISOString().slice(0,16) : ""});}}>Edit</button><button className="small-action" onClick={() => void toggleCoupon(coupon)}>{coupon.is_active ? "Disable" : "Enable"}</button></div></article>)}</div>
+            </section>
+          )}
+
+          {section === "admin-users" && isAdmin && (
+            <section className="store-page-section">
+              <SectionTitle
+                overline="STUDIO / ACCOUNTS"
+                title="Manage users."
+                subtitle="Update account details and roles, or permanently remove customer accounts."
+              />
+              <form className="admin-user-search" onSubmit={(event) => void searchAdminUsers(event)}>
+                <div className="form-field">
+                  <label htmlFor="admin-user-search">Find a user</label>
+                  <input
+                    id="admin-user-search"
+                    type="search"
+                    value={adminUserSearch}
+                    onChange={(event) => setAdminUserSearch(event.target.value)}
+                    placeholder="Name or email"
+                  />
+                </div>
+                <button className="button button-dark" disabled={working}>Search</button>
+              </form>
+              {!adminUsers.length ? (
+                <div className="empty-state">No users match this search.</div>
+              ) : (
+                <div className="admin-table">
+                  {adminUsers.map((user) => {
+                    const isEditing = editingAdminUser === user.id;
+                    const isCurrentAdmin = profile?.user_id === user.id;
+                    return (
+                      <article className="admin-row managed-user-row" key={user.id}>
+                        {isEditing ? (
+                          <form className="managed-user-form" onSubmit={(event) => void saveAdminUser(event)}>
+                            <div className="managed-user-details">
+                              <strong>{user.email}</strong>
+                              <span>Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                              <div className="managed-user-fields">
+                                <div className="form-field">
+                                  <label htmlFor={`user-name-${user.id}`}>Full name</label>
+                                  <input
+                                    id={`user-name-${user.id}`}
+                                    required
+                                    minLength={2}
+                                    maxLength={255}
+                                    value={adminUserDraft.full_name ?? ""}
+                                    onChange={(event) =>
+                                      setAdminUserDraft({ ...adminUserDraft, full_name: event.target.value })
+                                    }
+                                  />
+                                </div>
+                                <div className="form-field">
+                                  <label htmlFor={`user-phone-${user.id}`}>Phone</label>
+                                  <input
+                                    id={`user-phone-${user.id}`}
+                                    maxLength={20}
+                                    value={adminUserDraft.phone ?? ""}
+                                    onChange={(event) =>
+                                      setAdminUserDraft({ ...adminUserDraft, phone: event.target.value || null })
+                                    }
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="managed-user-permissions">
+                              <div className="form-field">
+                                <label htmlFor={`user-role-${user.id}`}>Role</label>
+                                <select
+                                  id={`user-role-${user.id}`}
+                                  value={adminUserDraft.role ?? user.role}
+                                  disabled={isCurrentAdmin}
+                                  onChange={(event) =>
+                                    setAdminUserDraft({
+                                      ...adminUserDraft,
+                                      role: event.target.value as UserRole,
+                                    })
+                                  }
+                                >
+                                  <option value="admin">Admin</option>
+                                  <option value="accountant">Accountant</option>
+                                  <option value="business">Business</option>
+                                  <option value="customer">Customer</option>
+                                </select>
+                              </div>
+                              <label className="checkbox-row">
+                                <input
+                                  type="checkbox"
+                                  checked={adminUserDraft.is_active ?? user.is_active === true}
+                                  disabled={isCurrentAdmin}
+                                  onChange={(event) =>
+                                    setAdminUserDraft({
+                                      ...adminUserDraft,
+                                      is_active: event.target.checked,
+                                    })
+                                  }
+                                />
+                                Active account
+                              </label>
+                            </div>
+                            <div className="inline-actions">
+                              <button className="small-action" disabled={working}>Save</button>
+                              <button
+                                type="button"
+                                className="small-action"
+                                onClick={() => {
+                                  setEditingAdminUser(null);
+                                  setAdminUserDraft({});
+                                }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <>
+                            <div className="managed-user-details">
+                              <strong>{user.full_name}</strong>
+                              <span>{user.email} · {user.phone || "No phone"} · Joined {new Date(user.created_at).toLocaleDateString()}</span>
+                              <span>
+                                Role: {user.role} · {user.is_active ? "Active" : "Inactive"}
+                                {user.is_verified ? " · Verified" : ""}
+                              </span>
+                            </div>
+                            <div className="inline-actions">
+                              <button
+                                className="small-action"
+                                onClick={() => {
+                                  setEditingAdminUser(user.id);
+                                  setAdminUserDraft({
+                                    full_name: user.full_name,
+                                    phone: user.phone,
+                                    role: user.role,
+                                    is_active: user.is_active === true,
+                                  });
+                                }}
+                              >
+                                Edit
+                              </button>
+                              {user.role === "customer" && !isCurrentAdmin && (
+                                <button
+                                  className="small-action danger"
+                                  onClick={() => void deleteAdminCustomer(user)}
+                                >
+                                  Delete permanently
+                                </button>
+                              )}
+                            </div>
+                          </>
+                        )}
+                      </article>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="admin-user-pagination">
+                <button
+                  className="button button-outline"
+                  disabled={working || adminUserOffset === 0}
+                  onClick={() => void changeAdminUserPage(Math.max(0, adminUserOffset - 50))}
+                >
+                  Previous
+                </button>
+                <span>Page {Math.floor(adminUserOffset / 50) + 1}</span>
+                <button
+                  className="button button-outline"
+                  disabled={working || adminUsers.length < 50}
+                  onClick={() => void changeAdminUserPage(adminUserOffset + 50)}
+                >
+                  Next
+                </button>
+              </div>
+              <p className="admin-user-warning">
+                Permanent deletion removes the customer&apos;s account and linked order, payment, address, and notification data.
+              </p>
             </section>
           )}
 

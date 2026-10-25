@@ -2,8 +2,83 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from src.auth.models import AuthUser
-from src.user.dtos import AddressCreateRequest, AddressUpdateRequest, UserProfileUpdateRequest
+from src.user.dtos import (
+    AddressCreateRequest,
+    AddressUpdateRequest,
+    AdminUserUpdateRequest,
+    UserProfileUpdateRequest,
+)
 from src.user.models import Address, UserProfile
+
+
+def list_users(search: str | None, limit: int, offset: int, db: Session) -> list[AuthUser]:
+    query = db.query(AuthUser)
+    if search:
+        search_term = f"%{search.strip()}%"
+        query = query.filter(
+            AuthUser.email.ilike(search_term)
+            | AuthUser.full_name.ilike(search_term)
+        )
+    return query.order_by(AuthUser.id.asc()).offset(offset).limit(limit).all()
+
+
+def update_user(
+    user_id: int,
+    body: AdminUserUpdateRequest,
+    current_admin: AuthUser,
+    db: Session,
+) -> AuthUser:
+    user = db.query(AuthUser).filter(AuthUser.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    changes = body.model_dump(exclude_unset=True)
+    role_change = changes.get("role")
+    deactivating = changes.get("is_active") is False
+    if user.id == current_admin.id and (role_change not in (None, "admin") or deactivating):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You cannot remove your own administrator access",
+        )
+
+    losing_admin = user.role == "admin" and (
+        role_change not in (None, "admin") or deactivating
+    )
+    if losing_admin:
+        active_admin_count = (
+            db.query(AuthUser)
+            .filter(AuthUser.role == "admin", AuthUser.is_active.is_(True))
+            .count()
+        )
+        if active_admin_count <= 1:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="The last active administrator cannot be demoted or deactivated",
+            )
+
+    for field, value in changes.items():
+        setattr(user, field, value)
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def delete_customer(user_id: int, current_admin: AuthUser, db: Session) -> None:
+    user = db.query(AuthUser).filter(AuthUser.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if user.id == current_admin.id:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="You cannot delete your own account",
+        )
+    if user.role != "customer":
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only customer accounts can be permanently deleted",
+        )
+    db.delete(user)
+    db.commit()
 
 
 def _profile_response(user: AuthUser, profile: UserProfile | None) -> dict:

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { NookLoader } from "@/components/nook-loader";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import {
@@ -216,7 +217,7 @@ export default function AccountPage() {
   }
 
   if (loading || !profile) {
-    return <div className="loading-state">Getting your little corner ready…</div>;
+    return <NookLoader label="Getting your little corner ready…" />;
   }
 
   return (
