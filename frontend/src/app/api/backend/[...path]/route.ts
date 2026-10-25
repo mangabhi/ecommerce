@@ -16,8 +16,10 @@ async function proxyRequest(request: NextRequest, context: RouteContext) {
   const headers = new Headers();
   const authorization = request.headers.get("authorization");
   const contentType = request.headers.get("content-type");
+  const stripeSignature = request.headers.get("stripe-signature");
   if (authorization) headers.set("Authorization", authorization);
   if (contentType) headers.set("Content-Type", contentType);
+  if (stripeSignature) headers.set("Stripe-Signature", stripeSignature);
   if (
     process.env.APP_ENV === "development" &&
     path.join("/") === "payments/webhook" &&

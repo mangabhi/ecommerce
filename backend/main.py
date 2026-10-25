@@ -1,7 +1,8 @@
 from fastapi import FastAPI
+from sqlalchemy import inspect, text
 from src.utils.db import Base,engine
 from src.auth.router import auth_routes
-from src.user.router import user_routes
+from src.user.router import admin_user_routes, user_routes
 from src.user.models import Address, UserProfile
 from src.products.router import product_routes
 from src.products.models import Product
@@ -24,12 +25,27 @@ from src.notifications.models import Notification
 
 Base.metadata.create_all(engine)
 
+
+def ensure_payment_method_id_column(database_engine=engine):
+    payment_columns = {
+        column["name"] for column in inspect(database_engine).get_columns("payment")
+    }
+    if "payment_method_id" not in payment_columns:
+        with database_engine.begin() as connection:
+            connection.execute(
+                text("ALTER TABLE payment ADD COLUMN payment_method_id VARCHAR(128)")
+            )
+
+
+ensure_payment_method_id_column()
+
 app=FastAPI(title="Authentication User",description="This API will check if the user is valid or not")
 @app.get("/health")
 def health_check():
     return {"status":"healthy"}
 app.include_router(auth_routes)
 app.include_router(user_routes)
+app.include_router(admin_user_routes)
 app.include_router(product_routes)
 app.include_router(category_routes)
 app.include_router(cart_routes)

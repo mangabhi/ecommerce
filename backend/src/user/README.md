@@ -13,6 +13,24 @@ Base path: `/api/v1/users`
 
 All endpoints require an access token in the `Authorization: Bearer <access_token>` header.
 
+## Administrator user management
+
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| GET | `/api/v1/admin/users` | Search and list users (`limit` 1-500, `offset`, optional `search`) |
+| PATCH | `/api/v1/admin/users/{id}` | Update a user's name, phone, role, or active status |
+| DELETE | `/api/v1/admin/users/{id}` | Permanently delete a customer account |
+
+These endpoints require an administrator access token. Roles may be set to
+`admin`, `accountant`, `business`, or `customer`. The last active administrator
+cannot be demoted or deactivated, and an administrator cannot remove their own
+administrator access.
+
+Permanent customer deletion also permanently deletes records linked to the
+account through the database's cascading foreign keys, including order and
+payment history, addresses, and notifications. Only accounts whose current role
+is `customer` can be deleted; other roles can be deactivated or changed instead.
+
 ## Profile
 
 `GET /api/v1/users/me` returns the authenticated user's account fields together with

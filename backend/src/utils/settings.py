@@ -10,5 +10,8 @@ class Settings(BaseSettings):
     REFRESH_EXP_TIME:int
     APP_ENV: str = "production"
     MOCK_PAYMENT_WEBHOOK_SECRET: str = ""
+    STRIPE_SECRET_KEY: str = ""
+    STRIPE_PUBLISHABLE_KEY: str = ""
+    STRIPE_WEBHOOK_SECRET: str = ""
 
 settings=Settings()

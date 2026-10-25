@@ -34,9 +34,14 @@ class PaymentResponse(BaseModel):
     user_id: int
     provider: str
     provider_reference: str
+    payment_method_id: str | None = None
     status: str
     amount: Decimal
     currency: str
     refund_reason: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class PaymentIntentResponse(PaymentResponse):
+    client_secret: str | None = None

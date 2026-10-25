@@ -16,6 +16,23 @@ export type UserProfile = {
   updated_at: string | null;
 };
 
+export type UserRole = "admin" | "accountant" | "business" | "customer";
+
+export type ManagedUser = {
+  id: number;
+  email: string;
+  full_name: string;
+  role: UserRole;
+  phone: string | null;
+  is_active: boolean | null;
+  is_verified: boolean;
+  created_at: string;
+};
+
+export type ManagedUserInput = Partial<
+  Pick<ManagedUser, "full_name" | "phone" | "role" | "is_active">
+>;
+
 export type Address = {
   id: number;
   user_id: number;
@@ -157,12 +174,22 @@ export type Payment = {
   user_id: number;
   provider: string;
   provider_reference: string;
+  payment_method_id: string | null;
   status: string;
   amount: string;
   currency: string;
   refund_reason: string | null;
   created_at: string;
   updated_at: string;
+};
+
+export type PaymentIntent = Payment & {
+  client_secret: string;
+};
+
+export type PaymentConfig = {
+  enabled: boolean;
+  publishable_key: string;
 };
 
 export type Review = {
@@ -387,6 +414,17 @@ export const userApi = {
     }),
   deleteAddress: (id: number) =>
     apiFetch<void>(`/users/me/addresses/${id}`, { method: "DELETE" }),
+  adminList: (search = "", limit = 100, offset = 0) =>
+    apiFetch<ManagedUser[]>(
+      `/admin/users${queryString({ search, limit, offset })}`,
+    ),
+  adminUpdate: (id: number, input: ManagedUserInput) =>
+    apiFetch<ManagedUser>(`/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(input),
+    }),
+  adminDeleteCustomer: (id: number) =>
+    apiFetch<void>(`/admin/users/${id}`, { method: "DELETE" }),
 };
 
 export const productApi = {
@@ -531,11 +569,14 @@ export const orderApi = {
 };
 
 export const paymentApi = {
+  config: () => apiFetch<PaymentConfig>("/payments/config"),
   create: (order_id: number, currency = "USD") =>
-    apiFetch<Payment>("/payments/create", {
+    apiFetch<PaymentIntent>("/payments/create", {
       method: "POST",
       body: JSON.stringify({ order_id, currency }),
     }),
+  confirm: (id: number) =>
+    apiFetch<Payment>(`/payments/${id}/confirm`, { method: "POST" }),
   get: (id: number) => apiFetch<Payment>(`/payments/${id}`),
   webhook: (input: {
     provider_reference: string;

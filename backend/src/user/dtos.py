@@ -1,5 +1,5 @@
 from datetime import date, datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -14,6 +14,37 @@ class UserProfileResponse(BaseModel):
     avatar_url: Optional[str] = None
     created_at: Optional[datetime] = None
     updated_at: Optional[datetime] = None
+
+
+class AdminUserResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    full_name: str
+    role: str
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+    is_verified: bool
+    created_at: datetime
+
+
+class AdminUserUpdateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    full_name: Optional[str] = Field(default=None, min_length=2, max_length=255)
+    phone: Optional[str] = Field(default=None, max_length=20)
+    role: Optional[Literal["admin", "accountant", "business", "customer"]] = None
+    is_active: Optional[bool] = None
+
+    @model_validator(mode="after")
+    def validate_patch(self):
+        if not self.model_fields_set:
+            raise ValueError("At least one user field must be provided")
+        for field_name in {"full_name", "role", "is_active"} & self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null")
+        return self
 
 
 class UserProfileUpdateRequest(BaseModel):

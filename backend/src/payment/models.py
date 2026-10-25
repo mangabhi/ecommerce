@@ -12,6 +12,7 @@ class Payment(Base):
     user_id = Column(Integer, ForeignKey("auth_user.id", ondelete="CASCADE"), nullable=False, index=True)
     provider = Column(String(32), nullable=False, default="mock")
     provider_reference = Column(String(128), nullable=False, unique=True, index=True)
+    payment_method_id = Column(String(128), nullable=True)
     status = Column(String(32), nullable=False, default="pending", index=True)
     amount = Column(Numeric(10, 2), nullable=False)
     currency = Column(String(3), nullable=False, default="USD")
