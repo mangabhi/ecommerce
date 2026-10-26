@@ -70,6 +70,7 @@ jobs:
   publish-images:
     runs-on: ubuntu-latest
     needs: [backend-tests, frontend-checks]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
       - name: Checkout repository
