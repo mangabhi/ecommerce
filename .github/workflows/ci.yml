@@ -103,6 +103,7 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/ecommerce-frontend:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/ecommerce-frontend:latest
+  
   deploy-to-kubernetes:
     runs-on: [self-hosted, Windows, X64]
     if: github.event_name == 'workflow_dispatch'
@@ -111,10 +112,22 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Verify Kubernetes access
+      - name: Deploy backend
         shell: powershell
         run: |
-          kubectl config current-context
-          kubectl get deployments -n ecommerce
+          kubectl set image deployment/backend backend=ghcr.io/mangabhi/ecommerce-backend:${{ github.sha }} -n ecommerce
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Deploy frontend
+        shell: powershell
+        run: |
+          kubectl set image deployment/frontend frontend=ghcr.io/mangabhi/ecommerce-frontend:${{ github.sha }} -n ecommerce
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 
+      - name: Wait for rollout
+        shell: powershell
+        run: |
+          kubectl rollout status deployment/backend -n ecommerce --timeout=180s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          kubectl rollout status deployment/frontend -n ecommerce --timeout=180s
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
