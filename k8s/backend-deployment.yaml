@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: backend
-          image: mangabhi/ecommerce-backend:1.0
+          image: ghcr.io/mangabhi/ecommerce-backend:latest
           imagePullPolicy: IfNotPresent
           envFrom:
             - secretRef:

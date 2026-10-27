@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: mangabhi/ecommerce-frontend:1.0
+          image: ghcr.io/mangabhi/ecommerce-frontend:latest
           imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
