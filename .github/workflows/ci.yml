@@ -103,13 +103,18 @@ jobs:
           tags: |
             ghcr.io/${{ github.repository_owner }}/ecommerce-frontend:${{ github.sha }}
             ghcr.io/${{ github.repository_owner }}/ecommerce-frontend:latest
-
-  deployment-runner-check:
+  deploy-to-kubernetes:
     runs-on: [self-hosted, Windows, X64]
     if: github.event_name == 'workflow_dispatch'
+    needs: [backend-tests, frontend-checks, publish-images]
     steps:
-      - name: Verify runner only
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify Kubernetes access
+        shell: powershell
         run: |
-          Write-Output "Self-hosted runner is available."
-          Write-Output "No deployment was performed."
+          kubectl config current-context
+          kubectl get deployments -n ecommerce
+
 
