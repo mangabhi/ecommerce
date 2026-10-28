@@ -127,7 +127,7 @@ jobs:
       - name: Wait for rollout
         shell: powershell
         run: |
-          kubectl rollout status deployment/backend -n ecommerce --timeout=180s
+          kubectl rollout status deployment/backend -n ecommerce --timeout=300s
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          kubectl rollout status deployment/frontend -n ecommerce --timeout=180s
+          kubectl rollout status deployment/frontend -n ecommerce --timeout=300s
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
