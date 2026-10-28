@@ -106,8 +106,8 @@ jobs:
   
   deploy-to-kubernetes:
     runs-on: [self-hosted, Windows, X64]
-    if: ${{ always() && github.event_name == 'workflow_dispatch' && needs.backend-tests.result == 'success' && needs.frontend-checks.result == 'success' && needs.publish-images.result == 'success' }}
     needs: [backend-tests, frontend-checks, publish-images]
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
