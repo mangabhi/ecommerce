@@ -131,3 +131,12 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           kubectl rollout status deployment/frontend -n ecommerce --timeout=300s
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Smoke test backend health
+        shell: powershell
+        run: |
+            $response = kubectl run smoke-test --rm -i --restart=Never --image=curlimages/curl:latest -n ecommerce -- curl -fsS http://backend:8000/health
+            if ($LASTEXITCODE -ne 0 -or $response -notmatch '"status"\s*:\s*"healthy"') {
+            Write-Error "Backend smoke test failed"
+            exit 1
+            }
+            Write-Host "Backend smoke test passed"
