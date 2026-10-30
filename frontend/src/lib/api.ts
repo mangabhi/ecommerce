@@ -637,3 +637,26 @@ export const notificationApi = {
       body: JSON.stringify({ title, message }),
     }),
 };
+
+export type RecommendedProduct = {
+  id: number;
+  name: string;
+  description: string | null;
+  price: string;
+  image_url: string | null;
+  category_name: string | null;
+  reason: string;
+};
+
+export type ShoppingAssistantResponse = {
+  message: string;
+  products: RecommendedProduct[];
+};
+
+export const aiApi = {
+  shoppingAssistant: (message: string) =>
+    apiFetch<ShoppingAssistantResponse>("/ai/shopping-assistant", {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
+};

@@ -22,6 +22,8 @@ from src.review_wishlist.router import review_wishlist_routes
 from src.review_wishlist.models import Review, WishlistItem
 from src.notifications.router import notification_routes
 from src.notifications.models import Notification
+from src.utils.db import Base,engine
+from src.ai.router import ai_routes
 
 Base.metadata.create_all(engine)
 
@@ -59,6 +61,7 @@ app.include_router(checkout_quote_routes)
 app.include_router(payment_routes)
 app.include_router(review_wishlist_routes)
 app.include_router(notification_routes)
+app.include_router(ai_routes)
 
 
 # @app.get('/')
