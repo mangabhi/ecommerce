@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   aiApi,
   type RecommendedProduct,
+  type ChatMessage,
 } from "@/lib/api";
 
 export default function ShoppingAssistant() {
@@ -12,6 +13,7 @@ export default function ShoppingAssistant() {
   const [products, setProducts] = useState<RecommendedProduct[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [history, setHistory] = useState<ChatMessage[]>([]);
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -24,9 +26,15 @@ export default function ShoppingAssistant() {
     setProducts([]);
 
     try {
-      const response = await aiApi.shoppingAssistant(message.trim());
+      const userMessage = message.trim();
+      const response = await aiApi.shoppingAssistant(userMessage,history);
       setReply(response.message);
       setProducts(response.products);
+      setHistory((previous) => [
+      ...previous,
+      { role: "user", content: userMessage },
+      { role: "assistant", content: response.message },
+      ]);
       setMessage("");
     } catch (err) {
       setError(
@@ -46,7 +54,7 @@ export default function ShoppingAssistant() {
       </h2>
 
       <p className="mt-2 text-sm text-gray-600">
-        Tell me what you're looking for, including your budget or preferences.
+        Tell me what you&apos;re looking for, including your budget or preferences.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-5 flex gap-2">

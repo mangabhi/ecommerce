@@ -653,10 +653,16 @@ export type ShoppingAssistantResponse = {
   products: RecommendedProduct[];
 };
 
-export const aiApi = {
-  shoppingAssistant: (message: string) =>
-    apiFetch<ShoppingAssistantResponse>("/ai/shopping-assistant", {
-      method: "POST",
-      body: JSON.stringify({ message }),
-    }),
+export type ChatMessage = {
+  role: "user" | "assistant";
+  content: string;
 };
+
+export const aiApi = {
+  shoppingAssistant: (message: string, history: ChatMessage[] = []) =>
+  apiFetch<ShoppingAssistantResponse>("/ai/shopping-assistant", {
+    method: "POST",
+    body: JSON.stringify({ message, history }),
+  }),
+};
+
