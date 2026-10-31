@@ -41,33 +41,30 @@ def search_products(
         if keyword.strip()
     ))
 
-    if not terms:
-        return []
+    # Apply keyword filtering only when keywords exist.
+    if terms:
+        phrase_terms = [term for term in terms if " " in term]
 
-    # Match complete product phrases.
-    phrase_terms = [term for term in terms if " " in term]
+        phrase_filters = [
+            Product.name.ilike(f"%{term}%")
+            for term in phrase_terms
+        ]
 
-    phrase_filters = [
-        Product.name.ilike(f"%{term}%")
-        for term in phrase_terms
-    ]
+        keyword_filters = []
 
-    # Match keywords in product name, description, or category.
-    keyword_filters = []
-
-    for term in terms:
-        pattern = f"%{term}%"
-        keyword_filters.append(
-            or_(
-                Product.name.ilike(pattern),
-                Product.description.ilike(pattern),
-                Category.name.ilike(pattern),
+        for term in terms:
+            pattern = f"%{term}%"
+            keyword_filters.append(
+                or_(
+                    Product.name.ilike(pattern),
+                    Product.description.ilike(pattern),
+                    Category.name.ilike(pattern),
+                )
             )
-        )
 
-    query = query.filter(
-        or_(*(phrase_filters + keyword_filters))
-    )
+        query = query.filter(
+            or_(*(phrase_filters + keyword_filters))
+        )
 
     # Match preferences against product name or description.
     def text_match(value: str):
@@ -91,7 +88,9 @@ def search_products(
             query = query.filter(text_match(feature))
 
     # Prioritize complete multi-word phrase matches.
-    if phrase_terms:
+    if terms and any(" " in term for term in terms):
+        phrase_terms = [term for term in terms if " " in term]
+
         relevance_score = case(
             *[
                 (Product.name.ilike(f"%{term}%"), 10)

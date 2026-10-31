@@ -658,11 +658,24 @@ export type ChatMessage = {
   content: string;
 };
 
+export type ProductComparisonResponse = {
+  message: string;
+  products: RecommendedProduct[];
+  cheapest_product_id: number;
+  most_expensive_product_id: number;
+  price_difference: string;
+};
+
 export const aiApi = {
   shoppingAssistant: (message: string, history: ChatMessage[] = []) =>
   apiFetch<ShoppingAssistantResponse>("/ai/shopping-assistant", {
     method: "POST",
     body: JSON.stringify({ message, history }),
+  }),
+  compareProducts: (productIds: number[]) =>
+  apiFetch<ProductComparisonResponse>("/ai/compare-products", {
+    method: "POST",
+    body: JSON.stringify({ product_ids: productIds }),
   }),
 };
 
