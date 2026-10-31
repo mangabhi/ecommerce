@@ -17,6 +17,7 @@ class ShoppingCriteria(BaseModel):
     brand: str | None = None
     style: str | None = None
     features: list[str] = Field(default_factory=list)
+    category: str | None = None
 
 
 def interpret_shopping_request(
@@ -37,7 +38,7 @@ Follow-up: show me black ones.
 Result: retain sneakers and budget 100, add black color.
 
 Return ONLY a valid JSON object with these fields:
-keywords, max_price, preferences, color, brand, style, features.
+keywords, max_price, preferences, color, brand, style, features , category.
 
 KEYWORD EXTRACTION RULES:
 1. Extract only specific product types or product names.
@@ -46,6 +47,11 @@ KEYWORD EXTRACTION RULES:
 4. Never use a budget expression as a keyword.
 5. If the user specifies only a budget, return an empty keywords array.
 6. Always extract the numeric budget into max_price.
+7. Extract product category separately into category.
+8. Never put a category name in keywords.
+9. Supported categories include Apparel, Accessories, Home & Living, Footwear.
+10. If the customer specifies only a category and budget,
+    keywords must be empty.
 
 Examples:
 Input: Find me products under 100 USD
@@ -59,6 +65,12 @@ Output: keywords=[], max_price=50
 
 Input: Show me casual shoes
 Output: keywords=["casual shoes"], max_price=null
+
+Input: Find apparel under 100 USD
+Output: keywords=[], category="Apparel", max_price=100
+
+Input: Find black jeans in apparel under 100 USD
+Output: keywords=["black jeans"], category="Apparel", max_price=100
 
 OTHER RULES:
 - Do not invent a budget if none is stated.

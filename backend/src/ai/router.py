@@ -85,6 +85,7 @@ def shopping_assistant(
         brand=criteria.brand,
         style=criteria.style,
         features=criteria.features,
+        category=criteria.category,
     )
 
     print("PRODUCTS FOUND:", len(products))
