@@ -1,7 +1,7 @@
 
 from decimal import Decimal
 
-from sqlalchemy import case, or_
+from sqlalchemy import and_, case, or_
 from sqlalchemy.orm import Session
 
 from src.categories.models import Category
@@ -17,6 +17,7 @@ def search_products(
     brand: str | None = None,
     style: str | None = None,
     features: list[str] | None = None,
+    category: str | None = None,
     limit: int = 5,
 ) -> list[Product]:
     """Return active, in-stock products ranked by relevance."""
@@ -30,75 +31,134 @@ def search_products(
         )
     )
 
-    # Apply maximum price.
+    # 1. Apply strict maximum-price filter.
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
 
-    # Clean search keywords.
+    # 2. Apply strict category filter.
+    if category and category.strip():
+        query = query.filter(
+            Category.name.ilike(category.strip())
+        )
+
+    # 3. Clean and deduplicate keywords.
     terms = list(dict.fromkeys(
         keyword.strip().lower()
         for keyword in keywords
         if keyword.strip()
     ))
 
-    if not terms:
-        return []
+    # 4. Require all words in each search term to match.
+    if terms:
+        for term in terms:
+            words = term.split()
 
-    # Match complete product phrases.
-    phrase_terms = [term for term in terms if " " in term]
-
-    phrase_filters = [
-        Product.name.ilike(f"%{term}%")
-        for term in phrase_terms
-    ]
-
-    # Match keywords in product name, description, or category.
-    keyword_filters = []
-
-    for term in terms:
-        pattern = f"%{term}%"
-        keyword_filters.append(
-            or_(
-                Product.name.ilike(pattern),
-                Product.description.ilike(pattern),
-                Category.name.ilike(pattern),
+            phrase_match = or_(
+                Product.name.ilike(f"%{term}%"),
+                Product.description.ilike(f"%{term}%"),
             )
-        )
 
-    query = query.filter(
-        or_(*(phrase_filters + keyword_filters))
+            all_words_match = and_(*[
+                or_(
+                    Product.name.ilike(f"%{word}%"),
+                    Product.description.ilike(f"%{word}%"),
+                )
+                for word in words
+            ])
+
+            query = query.filter(
+                or_(phrase_match, all_words_match)
+            )
+
+    # 5. Prepare customer preferences.
+    preferences = []
+
+    if color and color.strip():
+        preferences.append(color.strip())
+
+    if brand and brand.strip():
+        preferences.append(brand.strip())
+
+    if style and style.strip():
+        preferences.append(style.strip())
+
+    preferences.extend(
+        feature.strip()
+        for feature in features or []
+        if feature.strip()
     )
 
-    # Match preferences against product name or description.
+    # 6. Apply strict preference filters.
     def text_match(value: str):
-        pattern = f"%{value.strip()}%"
+        pattern = f"%{value}%"
         return or_(
             Product.name.ilike(pattern),
             Product.description.ilike(pattern),
         )
 
-    if color and color.strip():
-        query = query.filter(text_match(color))
+    for preference in preferences:
+        query = query.filter(text_match(preference))
 
-    if brand and brand.strip():
-        query = query.filter(text_match(brand))
+    # 7. Build cumulative relevance score.
+    score_parts = []
 
-    if style and style.strip():
-        query = query.filter(text_match(style))
+    for term in terms:
+        words = term.split()
 
-    for feature in features or []:
-        if feature.strip():
-            query = query.filter(text_match(feature))
-
-    # Prioritize complete multi-word phrase matches.
-    if phrase_terms:
-        relevance_score = case(
-            *[
-                (Product.name.ilike(f"%{term}%"), 10)
-                for term in phrase_terms
-            ],
-            else_=0,
+        # Complete phrase in product name.
+        score_parts.append(
+            case(
+                (Product.name.ilike(f"%{term}%"), 20),
+                else_=0,
+            )
         )
+
+        # Complete phrase in description.
+        score_parts.append(
+            case(
+                (Product.description.ilike(f"%{term}%"), 10),
+                else_=0,
+            )
+        )
+
+        # Individual word matches.
+        for word in words:
+            pattern = f"%{word}%"
+
+            score_parts.append(
+                case(
+                    (Product.name.ilike(pattern), 5),
+                    else_=0,
+                )
+            )
+
+            score_parts.append(
+                case(
+                    (Product.description.ilike(pattern), 3),
+                    else_=0,
+                )
+            )
+
+    # 8. Add preference matching bonuses.
+    for preference in preferences:
+        pattern = f"%{preference}%"
+
+        score_parts.append(
+            case(
+                (
+                    or_(
+                        Product.name.ilike(pattern),
+                        Product.description.ilike(pattern),
+                    ),
+                    2,
+                ),
+                else_=0,
+            )
+        )
+
+    # 9. Sort by relevance score.
+    if score_parts:
+        relevance_score = sum(score_parts)
 
         query = query.order_by(
             relevance_score.desc(),

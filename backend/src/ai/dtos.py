@@ -23,4 +23,12 @@ class ShoppingAssistantResponse(BaseModel):
     message: str
     products: list[RecommendedProduct]
 
+class ProductComparisonResponse(BaseModel):
+    message: str
+    products: list[RecommendedProduct]
+    cheapest_product_id: int
+    most_expensive_product_id: int
+    price_difference: Decimal
 
+class ProductComparisonRequest(BaseModel):
+    product_ids: list[int] = Field(min_length=2, max_length=5)
