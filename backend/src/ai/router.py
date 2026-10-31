@@ -15,6 +15,38 @@ ai_routes = APIRouter(
     tags=["AI Shopping Assistant"],
 )
 
+def generate_recommendation_reason(product, criteria) -> str:
+    reasons = []
+
+    if criteria.max_price is not None and product.price <= criteria.max_price:
+        reasons.append(f"Within your budget of ${criteria.max_price}.")
+
+    if product.category:
+        reasons.append(
+            f"Available in our {product.category.name} collection."
+        )
+
+    if criteria.keywords:
+        product_text = " ".join([
+            product.name or "",
+            product.description or "",
+            product.category.name if product.category else "",
+        ]).lower()
+
+        matched_keywords = [
+            keyword
+            for keyword in criteria.keywords
+            if keyword.lower() in product_text
+        ]
+
+        if matched_keywords:
+            reasons.append(
+                f"Matches your search for {', '.join(matched_keywords)}."
+            )
+
+    return " ".join(reasons) or (
+        "Selected from our available products based on your request."
+    )
 
 @ai_routes.post(
     "/shopping-assistant",
@@ -24,12 +56,25 @@ def shopping_assistant(
     request: ShoppingAssistantRequest,
     db: Session = Depends(get_db),
 ):
-    criteria = interpret_shopping_request(request.message)
+    criteria = interpret_shopping_request(
+    message=request.message,
+    history=[
+        {
+            "role": item.role,
+            "content": item.content,
+        }
+        for item in request.history
+    ],
+)
 
     products = search_products(
-        db,
-        keywords=criteria.keywords,
-        max_price=criteria.max_price,
+    db,
+    keywords=criteria.keywords,
+    max_price=criteria.max_price,
+    color=criteria.color,
+    brand=criteria.brand,
+    style=criteria.style,
+    features=criteria.features,
     )
 
     recommendations = [
@@ -40,15 +85,20 @@ def shopping_assistant(
             price=product.price,
             image_url=product.image_url,
             category_name=product.category.name if product.category else None,
-            reason="Matches your shopping preferences and budget.",
+            reason=generate_recommendation_reason(product, criteria),
         )
         for product in products
     ]
 
     if recommendations:
         message = f"I found {len(recommendations)} products matching your request."
+
     else:
-        message = "I couldn't find matching products. Try changing your keywords or budget."
+        message = (
+            "I couldn't find products matching all your requirements. "
+            "You could try increasing your budget, using broader search terms, "
+            "or removing optional preferences like color or style."
+        )
 
     return ShoppingAssistantResponse(
         message=message,

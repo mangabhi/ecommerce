@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import ShoppingAssistant from "@/components/ai/ShoppingAssistant";
 import { NookLoader } from "@/components/nook-loader";
 import {
   FormEvent,
@@ -55,7 +56,8 @@ type Section =
   | "inventory"
   | "coupons"
   | "admin-users"
-  | "admin-orders";
+  | "admin-orders"
+  | "shopping_assistance";
 
 const baseAddress: AddressInput = {
   label: "home",
@@ -688,6 +690,7 @@ export default function ShopPage() {
     { id: "wishlist", label: "Saved pieces", icon: "♡" },
     { id: "profile", label: "Your account", icon: "◡" },
     { id: "notifications", label: "Notifications", icon: "✉" },
+    { id: "shopping_assistance", label: "Shopping Assistant", icon: "✳" },
   ];
 
   return (
@@ -1104,6 +1107,8 @@ export default function ShopPage() {
               {!notifications.length ? <div className="empty-state">No notes for now. We&apos;ll leave the light on.</div> : <div className="notification-list">{notifications.map((notification) => <article className={`notification-card ${notification.is_read ? "read" : ""}`} key={notification.id}><span className="notification-mark">{notification.is_read ? "○" : "✳"}</span><div><h3>{notification.title}</h3><p>{notification.message}</p><time>{new Date(notification.created_at).toLocaleString()}</time></div>{!notification.is_read && <button className="small-action" onClick={() => void markRead(notification)}>Mark read</button>}</article>)}</div>}
             </section>
           )}
+
+          {section === "shopping_assistance" && <ShoppingAssistant />}
 
           {section === "products" && isAdmin && (
             <section className="store-page-section">
