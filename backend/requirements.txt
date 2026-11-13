@@ -8,3 +8,4 @@ stripe
 psycopg[binary]
 pytest
 ollama
+confluent-kafka==2.16.1

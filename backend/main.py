@@ -24,6 +24,7 @@ from src.notifications.router import notification_routes
 from src.notifications.models import Notification
 from src.utils.db import Base,engine
 from src.ai.router import ai_routes
+from src.kafka.models import OutboxEvent,ProcessedEvent
 
 Base.metadata.create_all(engine)
 
